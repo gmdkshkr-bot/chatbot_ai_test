@@ -61,7 +61,7 @@ if "chat" not in st.session_state:
     # client.chats.create()를 사용하여 채팅 세션을 만들고 세션 상태에 저장합니다.
     st.session_state.chat = client.chats.create(
         model=MODEL,
-        system_instruction=SYSTEM_PROMPT # <- 이 부분이 인격을 부여합니다!
+        system_instruction=SYSTEM_PROMPT
     )
     # 초기화 후 메시지 목록도 비워줍니다.
     st.session_state.messages = []
