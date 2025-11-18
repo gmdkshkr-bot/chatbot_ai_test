@@ -57,14 +57,20 @@ st.markdown("Gemini API의 `Chat Service`를 사용하여 대화 기록을 유�
 # 2. 채팅 세션 초기화 (기존 코드와 동일, Chat 객체는 캐시될 수 없습니다.)
 
 if "chat" not in st.session_state:
-    # client.chats.create() 호출 시 system_instruction 인수를 추가합니다.
-    # client.chats.create()를 사용하여 채팅 세션을 만들고 세션 상태에 저장합니다.
-    st.session_state.chat = client.chats.create(
-        model=MODEL,
-        system_instruction=SYSTEM_PROMPT
-    )
-    # 초기화 후 메시지 목록도 비워줍니다.
+    #if "chat" not in st.session_state:
+    # system_instruction 없이 채팅 세션을 생성합니다.
+    st.session_state.chat = client.chats.create(model=MODEL)
     st.session_state.messages = []
+    
+    # 🌟 첫 번째 메시지로 시스템 프롬프트를 주입합니다. (User 역할)
+    # 모델에게 인격을 부여하는 메시지를 먼저 보냅니다.
+    initial_prompt = f"당신은 이제부터 다음 지침에 따라 답변해야 합니다: {SYSTEM_PROMPT}"
+    
+    # 이 첫 번째 메시지는 사용자에게 표시되지 않고, 대화 기록에만 추가됩니다.
+    st.session_state.chat.send_message(initial_prompt)
+    
+    # 사용자에게는 인격이 부여되었다는 메시지를 보여줄 수 있습니다.
+    st.session_state.messages.append({"role": "assistant", "content": "안녕하세요! 저는 이제부터 **예술 전문가**로서 질문에 답변해 드릴게요."})
 
 
 # 3. Streamlit에 이전 대화 기록 표시
