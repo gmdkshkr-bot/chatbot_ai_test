@@ -1,7 +1,7 @@
 import os
 import streamlit as st
 from google import genai
-from google import types
+from google.genai import types
 from google.genai.errors import APIError
 
 # 1. 인격(페르소나) 정의
