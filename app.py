@@ -10,21 +10,34 @@ except (FileNotFoundError, KeyError):
     # 로컬 테스트 시 환경 변수 사용
     API_KEY = os.environ.get("GEMINI_API_KEY")
 
-# 1. Gemini 클라이언트 초기화
-if not API_KEY:
-    st.error("Gemini API Key를 찾을 수 없습니다. Streamlit Secrets 또는 환경 변수에 키를 설정해주세요.")
-    st.stop()
-
-# 클라이언트 초기화
-try:
-    client = genai.Client(api_key=API_KEY)
-except Exception as e:
-    st.error(f"Gemini 클라이언트 초기화 오류: {e}")
-    st.stop()
+# ... (API_KEY 설정 부분은 그대로 유지) ...
 
 # 사용할 모델 설정
 MODEL = 'gemini-2.5-flash'
 
+# 1. Gemini 클라이언트 초기화 함수 (수정된 부분)
+# @st.cache_resource를 사용하여 이 함수는 딱 한 번만 실행됩니다.
+@st.cache_resource
+def get_gemini_client(api_key):
+    """Gemini 클라이언트를 한 번만 생성하여 반환합니다."""
+    st.info("Gemini 클라이언트 초기화 중...") # 초기화 시에만 이 메시지가 보입니다.
+    try:
+        return genai.Client(api_key=api_key)
+    except Exception as e:
+        st.error(f"Gemini 클라이언트 초기화 오류: {e}")
+        st.stop()
+
+# 클라이언트 객체를 캐시된 함수를 통해 가져옵니다.
+if not API_KEY:
+    st.error("Gemini API Key를 찾을 수 없습니다. Streamlit Secrets 또는 환경 변수에 키를 설정해주세요.")
+    st.stop()
+    
+# 캐시된 클라이언트 사용
+client = get_gemini_client(API_KEY)
+
+
+## --- 챗봇 세션 관리 (client.chats 사용) --- ##
+# ... (나머지 코드는 그대로 유지) ...
 ## --- 챗봇 세션 관리 (client.chats 사용) --- ##
 
 st.title("✨ Streamlit 챗봇 (맥락 기억 가능)")
@@ -32,6 +45,7 @@ st.markdown("Gemini API의 `Chat Service`를 사용하여 대화 기록을 유�
 
 # 2. 채팅 세션 초기화
 # 세션 상태에 'chat' 객체가 없으면 새로 생성합니다.
+# 2. 채팅 세션 초기화 (기존 코드와 동일, Chat 객체는 캐시될 수 없습니다.)
 if "chat" not in st.session_state:
     # client.chats.create()를 사용하여 채팅 세션을 만들고 세션 상태에 저장합니다.
     st.session_state.chat = client.chats.create(model=MODEL)
