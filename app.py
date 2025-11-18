@@ -15,6 +15,15 @@ except (FileNotFoundError, KeyError):
 # 사용할 모델 설정
 MODEL = 'gemini-2.5-flash'
 
+# 0. 시스템 프롬프트 정의 (새로 추가)
+SYSTEM_PROMPT = """
+당신은 세계적으로 인정받는 **예술 전문가**입니다. 
+당신은 예술사, 미술 기법, 현대 예술 트렌드에 대한 깊이 있는 지식을 가지고 있습니다.
+사용자의 질문에 대해 깊이 있는 예술적 통찰력과 역사적 맥락을 바탕으로 친절하고 전문가답게 답변해야 합니다.
+답변은 항상 한국어로 제공하며, 명확하고 이해하기 쉽게 설명해 주세요.
+"""
+# ----------------------------------
+
 # 1. Gemini 클라이언트 초기화 함수 (수정된 부분)
 # @st.cache_resource를 사용하여 이 함수는 딱 한 번만 실행됩니다.
 @st.cache_resource
@@ -46,11 +55,17 @@ st.markdown("Gemini API의 `Chat Service`를 사용하여 대화 기록을 유�
 # 2. 채팅 세션 초기화
 # 세션 상태에 'chat' 객체가 없으면 새로 생성합니다.
 # 2. 채팅 세션 초기화 (기존 코드와 동일, Chat 객체는 캐시될 수 없습니다.)
+
 if "chat" not in st.session_state:
+    # client.chats.create() 호출 시 system_instruction 인수를 추가합니다.
     # client.chats.create()를 사용하여 채팅 세션을 만들고 세션 상태에 저장합니다.
-    st.session_state.chat = client.chats.create(model=MODEL)
+    st.session_state.chat = client.chats.create(
+        model=MODEL,
+        system_instruction=SYSTEM_PROMPT # <- 이 부분이 인격을 부여합니다!
+    )
     # 초기화 후 메시지 목록도 비워줍니다.
     st.session_state.messages = []
+
 
 # 3. Streamlit에 이전 대화 기록 표시
 for message in st.session_state.messages:
