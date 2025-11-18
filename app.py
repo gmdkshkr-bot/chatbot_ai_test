@@ -1,21 +1,18 @@
 import os
 import streamlit as st
 from google import genai
-from google.genai import types
+# Note: types 모듈을 직접 임포트 할 필요가 줄어들었습니다!
 
-# 🚨 주의: 실제 배포 시에는 st.secrets를 사용해야 합니다.
-# 로컬 테스트를 위해 환경 변수에서 API 키를 가져옵니다.
-# 배포할 때는 아래 # 주석 처리된 라인을 사용하세요!
+# 🚨 Streamlit Secrets에서 API 키를 가져오는 로직 (권장)
 try:
-    # 🌟 Streamlit Cloud 배포 시: st.secrets에서 API 키를 가져옴
     API_KEY = st.secrets["GEMINI_API_KEY"] 
 except (FileNotFoundError, KeyError):
-    # 🖥️ 로컬 테스트 시: 환경 변수에서 API 키를 가져옴
+    # 로컬 테스트 시 환경 변수 사용
     API_KEY = os.environ.get("GEMINI_API_KEY")
 
 # 1. Gemini 클라이언트 초기화
 if not API_KEY:
-    st.error("Gemini API Key를 찾을 수 없습니다. 환경 변수 'GEMINI_API_KEY' 또는 Streamlit Secrets에 키를 설정해주세요.")
+    st.error("Gemini API Key를 찾을 수 없습니다. Streamlit Secrets 또는 환경 변수에 키를 설정해주세요.")
     st.stop()
 
 # 클라이언트 초기화
@@ -26,16 +23,19 @@ except Exception as e:
     st.stop()
 
 # 사용할 모델 설정
-MODEL = 'gemini-2.5-flash' # 빠르고 비용 효율적인 모델
+MODEL = 'gemini-2.5-flash'
 
-## --- 챗봇 세션 관리 로직 --- ##
+## --- 챗봇 세션 관리 (client.chats 사용) --- ##
 
-st.title("✨ Streamlit 챗봇 with Gemini API")
-st.markdown("학교 과제를 위한 간단한 Gemini 챗봇입니다. 질문을 입력해 보세요!")
+st.title("✨ Streamlit 챗봇 (맥락 기억 가능)")
+st.markdown("Gemini API의 `Chat Service`를 사용하여 대화 기록을 유지합니다.")
 
-# 2. 채팅 기록(history) 초기화
-# Streamlit의 session_state를 사용하여 대화 기록을 유지합니다.
-if "messages" not in st.session_state:
+# 2. 채팅 세션 초기화
+# 세션 상태에 'chat' 객체가 없으면 새로 생성합니다.
+if "chat" not in st.session_state:
+    # client.chats.create()를 사용하여 채팅 세션을 만들고 세션 상태에 저장합니다.
+    st.session_state.chat = client.chats.create(model=MODEL)
+    # 초기화 후 메시지 목록도 비워줍니다.
     st.session_state.messages = []
 
 # 3. Streamlit에 이전 대화 기록 표시
@@ -50,25 +50,12 @@ if prompt := st.chat_input("여기에 질문을 입력하세요..."):
     with st.chat_message("user"):
         st.markdown(prompt)
 
-    # 5. Gemini API를 사용하여 응답 생성
+    # 5. Gemini Chat Service를 사용하여 응답 생성
     with st.chat_message("assistant"):
         with st.spinner("생각 중..."):
             try:
-                # 대화 기록을 history 객체로 변환 (Gemini API 형식에 맞게)
-                history = [
-                    types.Content(
-                        role="model" if m["role"] == "assistant" else "user", 
-                        parts=[types.Part.from_text(m["content"])]
-                    ) for m in st.session_state.messages
-                ]
-                
-                # generate_content 호출 (가장 최근의 프롬프트만 전달)
-                # 이 예제에서는 단순하게 가장 최근 프롬프트만 사용합니다.
-                # 전체 대화 맥락을 유지하려면, `client.chats`를 사용하는 것이 더 좋습니다.
-                response = client.models.generate_content(
-                    model=MODEL,
-                    contents=prompt # 대화 기록 대신 현재 프롬프트만 전송
-                )
+                # chat.send_message()를 호출하면, Gemini가 이전 대화 기록을 자동으로 참조합니다.
+                response = st.session_state.chat.send_message(prompt)
                 
                 # 응답을 화면에 표시
                 st.markdown(response.text)
